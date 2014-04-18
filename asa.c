@@ -64,6 +64,5 @@ int main(){
     connect(user-1, link-1);
   }
   
-  
   return 0;
 }
