@@ -31,6 +31,7 @@ node* graph;
 
 queue endQueue;
 queue headQueue;
+adj* parent;
 
 int USER_NUM;
 int CN_NUM;
@@ -41,9 +42,10 @@ void pushQueue(node v){
   queueNode->_node = v;
   queueNode->_next = endQueue;
   queueNode->_prev = NULL;
-  if(endQueue){
-    endQueue->_prev = queueNode;
+  if(!headQueue){
+    headQueue = endQueue = queueNode;
   }
+  endQueue->_prev = queueNode;
   endQueue = queueNode;
 }
 
@@ -67,9 +69,9 @@ void initGraph(){
   }
 }
 
-int BFS(con* parent){
-  int pathCap, i, nextId, resCap;
-  con* P =(con*) malloc (sizeof(con) * (USER_NUM + 2));
+int BFS(){
+  int i, nextId, resCap, maxF = INF;
+  adj* P =(adj*) malloc (sizeof(adj) * (USER_NUM + 2));
   node u;
   adj aux;
 
@@ -78,31 +80,33 @@ int BFS(con* parent){
   }
 
   /*P[0] = -2; (make sure source is not rediscovered)*/
-  pathCap = INF;
-
+  endQueue = NULL;
+  headQueue = NULL;
   pushQueue(graph[0]);
   while (headQueue){
     u = popQueue();
-    aux = graph[u->_id]->_adj;
+    aux = u->_adj;
 
     while (aux){
 
       /*If there is available capacity, and v is not seen before in search*/
       nextId = aux->_connection->_id[(aux->_index + 1) %2];
+      printf("nextid:%d\n", nextId);
       resCap = aux->_connection->_cap - aux->_connection->_flow;
-      if ((resCap == INF) || (resCap > 0 && !P[nextId])){
-        P[nextId] = aux->_connection;
-        if((pathCap == INF) || (pathCap > resCap)){
-          pathCap = resCap;
+      if ((resCap == INF || resCap > 0) && !P[nextId]){
+        P[nextId] = aux;
+        if(maxF == INF ||  resCap < maxF){
+          maxF = resCap;
         }
-        if(graph[nextId] != graph[1]){
+        if(nextId != 1){
           pushQueue(graph[nextId]);
         }
         else{
           parent = P;
-          return pathCap;
+          return maxF;
         }
       }
+      aux = aux->_next;
     }
   }
   parent = P;
@@ -110,18 +114,33 @@ int BFS(con* parent){
 }
 
 int edmondsKarp(){
-  int maxFlow = 0, augment = 0;
-  con* parent = NULL;
-  node aux = graph[1];
-  augment = BFS(parent);
+  int maxFlow = 0, nextId, augment = 0;
+  node auxNode;
+  adj auxAdj;
+  con auxCon;
+  augment = BFS();
   while(augment){
-    maxFlow++;
     /*(Backtrack search, and write flow)*/
-    while(aux != graph[0]){
-      (parent[aux->_id]->_flow)++;
-      aux = graph[parent[aux->_id]->_id[(aux->_adj->_index + 1) % 2]];
+    auxNode = graph[1];
+    while(auxNode != graph[0]){
+      printf("NodeID:%d\n", auxNode->_id);
+      auxAdj = parent[auxNode->_id];
+      auxCon = parent[auxNode->_id]->_connection;
+      if(auxNode->_id == 1){
+        auxCon->_cap = auxCon->_flow = 1;
+      }
+      if(augment != INF){
+        auxCon->_flow++;
+        maxFlow++;
+      }
+
+      nextId = auxCon->_id[auxAdj->_index];
+      printf("INDEX1:%d ID1:%d\n", auxAdj->_index,  auxCon->_id[auxAdj->_index ]);
+      printf("INDEX2:%d ID2:%d\n", auxAdj->_index + 1,  nextId);
+      getchar();
+      auxNode = graph[nextId];
     }
-    augment = BFS(parent);
+    augment = BFS();
   }
   return maxFlow;
 }
@@ -170,8 +189,6 @@ int main(){
   scanf("%d", &USER_NUM);
   scanf("%d", &CN_NUM);
   int user, link, crit_sit, crit_node;
-  endQueue = NULL;
-  headQueue = NULL;
   initGraph();
   int i = 0, j = 0;
   while(i++ < CN_NUM){
@@ -179,7 +196,7 @@ int main(){
     scanf("%d", &user);
     /*printf("le link %d\n", i); */
     scanf("%d", &link);
-    connect(user+1, link+1, 1);
+    connect(user+2, link+2, 1);
   }
   scanf("%d", &CRIT_NUM);
   int res[CRIT_NUM];
@@ -189,8 +206,8 @@ int main(){
     j = 0;
     while(j++ < crit_sit){
       scanf("%d", &crit_node);
-      connect(0, crit_node+1, INF);
-      connect(1, crit_node+1, INF);
+      connect(0, crit_node+2, INF);
+      connect(1, crit_node+2, INF);
     }
     res[i] = edmondsKarp();
   }
