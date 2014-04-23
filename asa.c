@@ -33,7 +33,6 @@ node* graph;
 queue endQueue;
 queue headQueue;
 
-int parentHead;
 adj* parent;
 
 int source;
